@@ -1,9 +1,14 @@
 import type { NextConfig } from "next";
 
+const isGithubPages = process.env.GITHUB_PAGES === "true";
+
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  output: isGithubPages ? "export" : undefined,
+  basePath: isGithubPages ? "/omniapdf" : "",
+  assetPrefix: isGithubPages ? "/omniapdf" : undefined,
+  images: {
+    unoptimized: true,
+  },
   turbopack: {
     rules: {
       "*.css": {
