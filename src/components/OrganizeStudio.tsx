@@ -219,19 +219,19 @@ export const OrganizeStudio: React.FC<OrganizeStudioProps> = ({ initialFiles, on
           <button
             onClick={() => handleSort("asc")}
             className="px-3 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer"
-            title="Sort 1 to N"
+            title="Sort A to Z (Ascending)"
           >
             <SortAsc className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="hidden sm:inline">Sort Asc</span>
+            <span>A ➔ Z (ASC)</span>
           </button>
 
           <button
             onClick={() => handleSort("desc")}
             className="px-3 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer"
-            title="Sort N to 1"
+            title="Sort Z to A (Descending)"
           >
             <SortDesc className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">Sort Desc</span>
+            <span>Z ➔ A (DSC)</span>
           </button>
 
           <button
