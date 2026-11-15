@@ -182,15 +182,21 @@ export default function Home() {
             className="flex items-center gap-3 cursor-pointer group shrink-0"
             onClick={handleBackToDashboard}
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
-              <span className="font-extrabold text-lg tracking-wider">Ω</span>
+            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-slate-900 shadow-lg shadow-indigo-500/25 ring-1 ring-white/20 group-hover:scale-105 transition-transform duration-300">
+              <svg className="w-5 h-5 text-white drop-shadow-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" className="opacity-90 fill-white/10" />
+                <polyline points="14 2 14 8 20 8" />
+                <path d="M9 15h6" />
+                <path d="M9 11h6" />
+              </svg>
+              <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-white dark:ring-zinc-950" />
             </div>
             <div>
               <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-zinc-900 via-zinc-700 to-zinc-500 dark:from-white dark:via-zinc-200 dark:to-zinc-400 bg-clip-text text-transparent">
                 OmniaPDF
               </span>
-              <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 uppercase tracking-widest">
-                Unlimited Pro
+              <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 uppercase tracking-widest">
+                Enterprise
               </span>
             </div>
           </div>
@@ -448,18 +454,18 @@ export default function Home() {
         <main className="max-w-7xl mx-auto px-4 py-12">
           {/* Hero Header */}
           <div className="text-center max-w-3xl mx-auto mb-14">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 text-blue-400 text-xs font-semibold mb-6 border border-blue-500/20 shadow-sm">
-              <Zap className="w-3.5 h-3.5 text-blue-400" />
-              <span>Free, Unlimited, Zero-Server PDF Productivity Suite</span>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 text-xs font-semibold mb-6 border border-indigo-500/20 shadow-sm">
+              <Zap className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
+              <span>Private, Client-Side PDF Productivity &amp; Document Platform</span>
             </div>
             <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-zinc-900 dark:text-white mb-4">
-              Edit, Overwrite & Convert PDFs. <br className="hidden sm:inline" />
+              Professional PDF Editing &amp; <br className="hidden sm:inline" />
               <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 dark:from-blue-400 dark:via-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">
-                Zero Paywalls. 100% Private.
+                Document Intelligence Platform.
               </span>
             </h1>
             <p className="text-base sm:text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-2xl mx-auto">
-              Change words, numbers, and paragraphs on any PDF. Merge, split, compress, organize, and OCR documents with no file size limits or daily quotas.
+              Precision document editing and batch conversion. Merge, split, compress, organize, and OCR documents with local WebAssembly security.
             </p>
 
             {/* Quick Search Bar */}
@@ -555,10 +561,10 @@ export default function Home() {
               </div>
               <div>
                 <h4 className="font-semibold text-sm text-zinc-900 dark:text-white mb-1">
-                  Unlimited Pro Features
+                  High-Performance Processing Engine
                 </h4>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                  No subscriptions, watermarks, or daily quotas. Edit, merge, split, and compress multi-gigabyte documents freely.
+                  Engineered for demanding workloads with WebAssembly acceleration. Process complex multi-page files with zero quality loss.
                 </p>
               </div>
             </div>

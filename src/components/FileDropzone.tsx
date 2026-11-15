@@ -25,13 +25,18 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
 
   const validateAndPass = (fileList: File[]) => {
     setValidationError(null);
-    const isPdfTool = accept.includes("pdf") || accept === "application/pdf";
+    const isDocxTool = accept.includes("docx") || accept.includes("word");
+    const isPdfTool = (accept.includes("pdf") || accept === "application/pdf") && !isDocxTool;
     const isSheetTool = accept.includes("csv") || accept.includes("excel") || accept.includes("sheet");
     const isImageTool = accept.includes("image");
 
     const validFiles: File[] = [];
 
     for (const f of fileList) {
+      if (isDocxTool && !f.name.toLowerCase().match(/\.(docx|doc)$/i)) {
+        setValidationError(`"${f.name}" is not a Word document. Please select a .docx file.`);
+        return;
+      }
       if (isPdfTool && !f.name.toLowerCase().endsWith(".pdf") && !f.type.includes("pdf")) {
         setValidationError(`"${f.name}" is not a PDF document. Please select a valid .pdf file.`);
         return;
@@ -111,7 +116,7 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
 
         <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-200/60 dark:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          Unlimited Free Pro Engine &bull; Private In-Browser WASM
+          High-Performance Processing Engine &bull; Client-Side WebAssembly
         </div>
 
         <div className="mt-4">

@@ -50,6 +50,7 @@ import {
   getPdfPageCount,
 } from "@/lib/pdf-renderer";
 import { extractPdfToTable, convertSheetToPdf } from "@/lib/table-extractor";
+import { compressDocx, mergeDocxFiles } from "@/lib/docx-ops";
 
 interface ToolRunnerProps {
   tool: ToolMeta;
@@ -340,6 +341,18 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
         setDownloadReady({
           data: resultBytes,
           fileName: `${files[0].name.replace(/\.pdf$/i, "")}_protected.pdf`,
+        });
+      } else if (tool.id === "compress-word") {
+        const compressedBlob = await compressDocx(files[0], 0.7, setProgressMsg);
+        setDownloadReady({
+          data: compressedBlob,
+          fileName: `${files[0].name.replace(/\.docx$/i, "")}_compressed.docx`,
+        });
+      } else if (tool.id === "merge-word") {
+        const mergedBlob = await mergeDocxFiles(files, setProgressMsg);
+        setDownloadReady({
+          data: mergedBlob,
+          fileName: "merged_document.docx",
         });
       }
     } catch (err: any) {
