@@ -7,6 +7,15 @@ export async function fileToArrayBuffer(file: File): Promise<ArrayBuffer> {
   return await file.arrayBuffer();
 }
 
+// Helper to resolve public assets whether running on localhost or GitHub Pages (/omniapdf/)
+export function getAssetUrl(path: string): string {
+  const clean = path.startsWith("/") ? path : `/${path}`;
+  if (typeof window !== "undefined" && window.location.pathname.startsWith("/omniapdf")) {
+    return `/omniapdf${clean}`;
+  }
+  return clean;
+}
+
 // 1. MERGE PDFs
 export async function mergePDFs(files: File[], onProgress?: (msg: string) => void): Promise<Uint8Array> {
   onProgress?.("Creating unified document...");

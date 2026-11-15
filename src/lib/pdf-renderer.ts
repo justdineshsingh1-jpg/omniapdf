@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
+import { getAssetUrl } from "@/lib/pdf-ops";
 
 // We dynamically import pdfjs-dist in the browser to avoid SSR canvas node errors
 let pdfjsLib: any = null;
@@ -8,7 +9,7 @@ async function getPdfJs() {
   if (typeof window === "undefined") return null;
   if (!pdfjsLib) {
     pdfjsLib = await import("pdfjs-dist");
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+    pdfjsLib.GlobalWorkerOptions.workerSrc = getAssetUrl("/pdf.worker.min.mjs");
   }
   return pdfjsLib;
 }

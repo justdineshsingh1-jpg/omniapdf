@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { getAssetUrl } from "@/lib/pdf-ops";
 
 let pdfjsLib: any = null;
 
@@ -6,7 +7,7 @@ async function getPdfJs() {
   if (typeof window === "undefined") return null;
   if (!pdfjsLib) {
     pdfjsLib = await import("pdfjs-dist");
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+    pdfjsLib.GlobalWorkerOptions.workerSrc = getAssetUrl("/pdf.worker.min.mjs");
   }
   return pdfjsLib;
 }

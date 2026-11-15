@@ -2,6 +2,7 @@
 
 import React, { useRef, useState } from "react";
 import { UploadCloud, File as FileIcon, AlertCircle } from "lucide-react";
+import { getAssetUrl } from "@/lib/pdf-ops";
 
 interface FileDropzoneProps {
   onFilesSelected: (files: File[]) => void;
@@ -121,7 +122,8 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
               setValidationError(null);
               try {
                 const isSpreadsheet = accept.includes("csv") || accept.includes("excel") || accept.includes("sheet");
-                const sampleUrl = isSpreadsheet ? "/sample_bylanes.csv" : "/panel_test.pdf";
+                const samplePath = isSpreadsheet ? "/sample_bylanes.csv" : "/panel_test.pdf";
+                const sampleUrl = getAssetUrl(samplePath);
                 const sampleName = isSpreadsheet ? "Sample_APDCL_Lights.csv" : "Panel_APDCL_Subdivision_list.pdf";
                 const sampleMime = isSpreadsheet ? "text/csv" : "application/pdf";
 

@@ -29,7 +29,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
-import { downloadFile } from "@/lib/pdf-ops";
+import { downloadFile, getAssetUrl } from "@/lib/pdf-ops";
 
 interface DetectedTextItem {
   id: string;
@@ -264,7 +264,7 @@ export const PdfEditorStudio: React.FC<PdfEditorStudioProps> = ({ file, onBack }
       setStatusMsg("Loading document into interactive editor...");
       try {
         const pdfjs = await import("pdfjs-dist");
-        pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+        pdfjs.GlobalWorkerOptions.workerSrc = getAssetUrl("/pdf.worker.min.mjs");
 
         const buffer = await file.arrayBuffer();
         const loadingTask = pdfjs.getDocument({ data: new Uint8Array(buffer) });

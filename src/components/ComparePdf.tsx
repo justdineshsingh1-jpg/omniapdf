@@ -15,6 +15,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { getPdfPageCount, renderPageThumbnail } from "@/lib/pdf-renderer";
+import { getAssetUrl } from "@/lib/pdf-ops";
 
 interface ComparePdfProps {
   onBack: () => void;
@@ -40,7 +41,7 @@ export const ComparePdf: React.FC<ComparePdfProps> = ({ onBack }) => {
   const handleLoadDemo = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/panel_test.pdf");
+      const res = await fetch(getAssetUrl("/panel_test.pdf"));
       const blob = await res.blob();
       const f1 = new File([blob], "Panel_APDCL_Original_V1.pdf", { type: "application/pdf" });
       const f2 = new File([blob], "Panel_APDCL_Revised_V2.pdf", { type: "application/pdf" });
