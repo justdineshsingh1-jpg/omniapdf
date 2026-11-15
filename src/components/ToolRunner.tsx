@@ -59,7 +59,7 @@ interface ToolRunnerProps {
 
 export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
   const [files, setFiles] = useState<File[]>([]);
-  const [fileThumbs, setFileThumbs] = useState<Record<number, string>>({});
+  const [fileThumbs, setFileThumbs] = useState<Record<string | number, string>>({});
   const [pageThumbs, setPageThumbs] = useState<string[]>([]);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [selectedPages, setSelectedPages] = useState<number[]>([]);
@@ -445,56 +445,105 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
               )}
             </div>
 
-            {/* CASE 1: MULTI-FILE VISUAL CARDS (MERGE) */}
-            {tool.id === "merge" ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 flex-1">
-                {files.map((file, idx) => (
-                  <div
-                    key={idx}
-                    className="bg-zinc-50 dark:bg-zinc-950 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-3 flex flex-col items-center relative group shadow-sm hover:border-blue-500/50 transition-all"
-                  >
-                    <span className="absolute top-2 left-2 w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-[10px] font-bold text-zinc-800 dark:text-zinc-200 flex items-center justify-center">
-                      {idx + 1}
-                    </span>
-                    <button
-                      onClick={() => removeFile(idx)}
-                      className="absolute top-2 right-2 p-1 text-zinc-400 hover:text-rose-500 rounded-lg cursor-pointer transition-colors"
-                      title="Remove"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-
-                    <div className="w-28 aspect-[1/1.41] bg-white rounded-xl overflow-hidden shadow-sm flex items-center justify-center p-1 mt-4 border border-zinc-200 dark:border-zinc-700">
-                      {fileThumbs[idx] ? (
-                        <img src={fileThumbs[idx]} alt={file.name} className="w-full h-full object-contain" />
-                      ) : (
-                        <FileText className="w-8 h-8 text-zinc-400" />
-                      )}
-                    </div>
-
-                    <p className="font-bold text-xs text-zinc-900 dark:text-white mt-2 truncate max-w-[130px]" title={file.name}>
-                      {file.name}
-                    </p>
-                    <p className="text-[10px] text-zinc-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
-
-                    <div className="flex items-center justify-between w-full mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-800/80 text-[10px] text-zinc-500 dark:text-zinc-400">
-                      <button
-                        onClick={() => moveFile(idx, "left")}
-                        disabled={idx === 0}
-                        className="hover:text-blue-500 disabled:opacity-20 cursor-pointer"
-                      >
-                        &larr; Left
-                      </button>
-                      <button
-                        onClick={() => moveFile(idx, "right")}
-                        disabled={idx === files.length - 1}
-                        className="hover:text-blue-500 disabled:opacity-20 cursor-pointer"
-                      >
-                        Right &rarr;
-                      </button>
-                    </div>
+            {/* CASE 1: MULTI-FILE VISUAL CARDS (MERGE PDF / MERGE WORD / IMAGES TO PDF) */}
+            {tool.id === "merge" || tool.id === "merge-word" || tool.id === "images-to-pdf" ? (
+              <div className="flex-1 flex flex-col gap-4">
+                {/* 1-Click Sequence Arranging Controls */}
+                <div className="flex items-center justify-between bg-zinc-50 dark:bg-zinc-950 px-4 py-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-xs">
+                  <div className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400 font-semibold">
+                    <span>Order Files:</span>
                   </div>
-                ))}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFiles((prev) =>
+                          [...prev].sort((a, b) =>
+                            a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" })
+                          )
+                        );
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-semibold cursor-pointer transition-colors shadow-xs"
+                      title="Sort files A to Z alphabetically"
+                    >
+                      A ➔ Z (ASC)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFiles((prev) =>
+                          [...prev].sort((a, b) =>
+                            b.name.localeCompare(a.name, undefined, { numeric: true, sensitivity: "base" })
+                          )
+                        );
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-semibold cursor-pointer transition-colors shadow-xs"
+                      title="Sort files Z to A alphabetically"
+                    >
+                      Z ➔ A (DSC)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFiles((prev) => [...prev].reverse());
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-semibold cursor-pointer transition-colors shadow-xs"
+                      title="Reverse current sequence"
+                    >
+                      Reverse ⇄
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 flex-1">
+                  {files.map((file, idx) => (
+                    <div
+                      key={`${file.name}_${idx}`}
+                      className="bg-zinc-50 dark:bg-zinc-950 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-3 flex flex-col items-center relative group shadow-sm hover:border-blue-500/50 transition-all"
+                    >
+                      <span className="absolute top-2 left-2 w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-[10px] font-bold text-zinc-800 dark:text-zinc-200 flex items-center justify-center">
+                        {idx + 1}
+                      </span>
+                      <button
+                        onClick={() => removeFile(idx)}
+                        className="absolute top-2 right-2 p-1 text-zinc-400 hover:text-rose-500 rounded-lg cursor-pointer transition-colors"
+                        title="Remove"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+
+                      <div className="w-28 aspect-[1/1.41] bg-white rounded-xl overflow-hidden shadow-sm flex items-center justify-center p-1 mt-4 border border-zinc-200 dark:border-zinc-700">
+                        {fileThumbs[file.name] || fileThumbs[idx] ? (
+                          <img src={fileThumbs[file.name] || fileThumbs[idx]} alt={file.name} className="w-full h-full object-contain" />
+                        ) : (
+                          <FileText className="w-8 h-8 text-zinc-400" />
+                        )}
+                      </div>
+
+                      <p className="font-bold text-xs text-zinc-900 dark:text-white mt-2 truncate max-w-[130px]" title={file.name}>
+                        {file.name}
+                      </p>
+                      <p className="text-[10px] text-zinc-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+
+                      <div className="flex items-center justify-between w-full mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-800/80 text-[10px] text-zinc-500 dark:text-zinc-400">
+                        <button
+                          onClick={() => moveFile(idx, "left")}
+                          disabled={idx === 0}
+                          className="hover:text-blue-500 disabled:opacity-20 cursor-pointer"
+                        >
+                          &larr; Left
+                        </button>
+                        <button
+                          onClick={() => moveFile(idx, "right")}
+                          disabled={idx === files.length - 1}
+                          className="hover:text-blue-500 disabled:opacity-20 cursor-pointer"
+                        >
+                          Right &rarr;
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : tool.id === "excel-to-pdf" && sheetPreviewRows.length > 0 ? (
               /* CASE 2: EXCEL/CSV TO PDF - LIVE SPREADSHEET TABLE PREVIEW */

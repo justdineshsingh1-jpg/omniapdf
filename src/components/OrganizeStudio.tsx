@@ -134,13 +134,21 @@ export const OrganizeStudio: React.FC<OrganizeStudioProps> = ({ initialFiles, on
       const copy = [...prev];
       copy.sort((a, b) => {
         if (dir === "asc") {
-          return a.originalPageIndex - b.originalPageIndex;
+          return a.fileName === b.fileName
+            ? a.originalPageIndex - b.originalPageIndex
+            : a.fileName.localeCompare(b.fileName, undefined, { numeric: true, sensitivity: "base" });
         } else {
-          return b.originalPageIndex - a.originalPageIndex;
+          return a.fileName === b.fileName
+            ? b.originalPageIndex - a.originalPageIndex
+            : b.fileName.localeCompare(a.fileName, undefined, { numeric: true, sensitivity: "base" });
         }
       });
       return copy;
     });
+  };
+
+  const handleReverse = () => {
+    setPages((prev) => [...prev].reverse());
   };
 
   // Add more PDF files
@@ -224,6 +232,14 @@ export const OrganizeStudio: React.FC<OrganizeStudioProps> = ({ initialFiles, on
           >
             <SortDesc className="w-3.5 h-3.5 text-amber-400" />
             <span className="hidden sm:inline">Sort Desc</span>
+          </button>
+
+          <button
+            onClick={handleReverse}
+            className="px-3 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer"
+            title="Reverse Page Sequence"
+          >
+            <span>Reverse ⇄</span>
           </button>
 
           <input

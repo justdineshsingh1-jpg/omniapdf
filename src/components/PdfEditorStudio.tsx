@@ -311,6 +311,62 @@ export const PdfEditorStudio: React.FC<PdfEditorStudioProps> = ({ file, onBack }
     };
   }, [file, storageKey]);
 
+  // Font and typography detection helpers
+  const resolveFontFamily = (fontName?: string, styleFamily?: string): "Helvetica" | "Times" | "Courier" => {
+    const fontNameLower = (fontName || "").toLowerCase();
+    const styleFamilyLower = (styleFamily || "").toLowerCase();
+
+    if (
+      fontNameLower.includes("courier") ||
+      fontNameLower.includes("mono") ||
+      fontNameLower.includes("consolas") ||
+      styleFamilyLower.includes("mono")
+    ) {
+      return "Courier";
+    }
+    if (
+      (fontNameLower.includes("times") ||
+       fontNameLower.includes("georgia") ||
+       fontNameLower.includes("garamond") ||
+       fontNameLower.includes("cambria") ||
+       fontNameLower.includes("minion") ||
+       fontNameLower.includes("baskerville") ||
+       fontNameLower.includes("palatino") ||
+       (styleFamilyLower.includes("serif") && !styleFamilyLower.includes("sans"))) &&
+      !fontNameLower.includes("sans") &&
+      !fontNameLower.includes("arial")
+    ) {
+      return "Times";
+    }
+    return "Helvetica";
+  };
+
+  const resolveIsBold = (fontName?: string, styleFamily?: string, fontWeight?: number): boolean => {
+    const fontNameLower = (fontName || "").toLowerCase();
+    const styleFamilyLower = (styleFamily || "").toLowerCase();
+    return (
+      fontNameLower.includes("bold") ||
+      fontNameLower.includes("black") ||
+      fontNameLower.includes("heavy") ||
+      fontNameLower.includes("semibold") ||
+      fontNameLower.includes("medium") ||
+      styleFamilyLower.includes("bold") ||
+      (fontWeight !== undefined && fontWeight >= 600)
+    );
+  };
+
+  const resolveIsItalic = (fontName?: string, styleFamily?: string): boolean => {
+    const fontNameLower = (fontName || "").toLowerCase();
+    const styleFamilyLower = (styleFamily || "").toLowerCase();
+    return (
+      fontNameLower.includes("italic") ||
+      fontNameLower.includes("oblique") ||
+      fontNameLower.includes("slanted") ||
+      styleFamilyLower.includes("italic") ||
+      styleFamilyLower.includes("oblique")
+    );
+  };
+
   // Helper to sample pixel color from rendered canvas to match original text
   const sampleTextColor = (
     ctx: CanvasRenderingContext2D,
@@ -344,11 +400,11 @@ export const PdfEditorStudio: React.FC<PdfEditorStudioProps> = ({ file, onBack }
         if (a < 50 || (r > 235 && g > 235 && b > 235)) continue;
 
         // Detect genuine blue text (hyperlink / colored table cell)
-        if (b > 150 && b > r * 1.8 && b > g * 1.4) {
+        if (b > 130 && b > r * 1.4 && b > g * 1.2) {
           return "#0000ee";
         }
         // Detect genuine red text (table serials / alerts)
-        if (r > 150 && r > g * 1.8 && r > b * 1.8) {
+        if (r > 130 && r > g * 1.5 && r > b * 1.5) {
           return "#cc0000";
         }
 
@@ -394,7 +450,7 @@ export const PdfEditorStudio: React.FC<PdfEditorStudioProps> = ({ file, onBack }
             const brightness = pixel[0] + pixel[1] + pixel[2];
             // If it's a bright background pixel (not dark text), pick it
             if (brightness > 480) {
-              if (pixel[0] > 250 && pixel[1] > 250 && pixel[2] > 250) return "#ffffff";
+              if (pixel[0] > 248 && pixel[1] > 248 && pixel[2] > 248) return "#ffffff";
               return "#" + [pixel[0], pixel[1], pixel[2]].map((v) => v.toString(16).padStart(2, "0")).join("");
             }
           }
@@ -406,55 +462,57 @@ export const PdfEditorStudio: React.FC<PdfEditorStudioProps> = ({ file, onBack }
     }
   };
 
-  // Background extraction of all pages for Global Find & Replace
+  // Background extraction of all pages for Global Find & Replace with accurate sampled colors
   const extractAllPagesText = async (pdf: any) => {
     const allItems: DetectedTextItem[] = [];
     try {
+      const offscreenCanvas = typeof document !== "undefined" ? document.createElement("canvas") : null;
+      const offscreenCtx = offscreenCanvas?.getContext("2d");
+
       for (let p = 1; p <= pdf.numPages; p++) {
         const page = await pdf.getPage(p);
-        const viewport = page.getViewport({ scale: zoomScale });
+        const viewport = page.getViewport({ scale: 1.0 });
         const textContent = await page.getTextContent();
+
+        let pageCtx: CanvasRenderingContext2D | null = null;
+        if (offscreenCtx && offscreenCanvas) {
+          offscreenCanvas.width = viewport.width;
+          offscreenCanvas.height = viewport.height;
+          try {
+            await page.render({
+              canvasContext: offscreenCtx,
+              viewport,
+            }).promise;
+            pageCtx = offscreenCtx;
+          } catch {
+            pageCtx = null;
+          }
+        }
 
         textContent.items.forEach((item: any, idx: number) => {
           if (!item.str || !item.str.trim()) return;
 
           const tx = item.transform;
           const pdfFontSize = Math.round(Math.abs(tx[3] || tx[0] || 11) * 10) / 10;
-          const fontHeight = pdfFontSize * zoomScale;
+          const fontHeight = pdfFontSize;
           const [vx, vy] = viewport.convertToViewportPoint(tx[4], tx[5]);
-          const itemWidth = item.width ? item.width * zoomScale : item.str.length * (fontHeight * 0.55);
+          const itemWidth = item.width ? item.width : item.str.length * (fontHeight * 0.55);
           
           const style = textContent.styles[item.fontName];
           const ascent = style?.ascent || 0.85;
           const descent = style?.descent || -0.22;
           const itemHeight = Math.max(12, (ascent - descent) * fontHeight);
 
-          const fontNameLower = (item.fontName || "").toLowerCase();
-          const styleFamilyLower = (style?.fontFamily || "").toLowerCase();
-          let family: "Helvetica" | "Times" | "Courier" = "Helvetica";
-          if (fontNameLower.includes("courier") || fontNameLower.includes("mono") || styleFamilyLower.includes("mono")) {
-            family = "Courier";
-          } else if (
-            (fontNameLower.includes("times") || (!styleFamilyLower.includes("sans") && styleFamilyLower.includes("serif"))) &&
-            !fontNameLower.includes("sans")
-          ) {
-            family = "Times";
-          } else {
-            family = "Helvetica";
-          }
+          const family = resolveFontFamily(item.fontName, style?.fontFamily);
+          const isBold = resolveIsBold(item.fontName, style?.fontFamily, style?.fontWeight);
+          const isItalic = resolveIsItalic(item.fontName, style?.fontFamily);
 
-          const isBold =
-            fontNameLower.includes("bold") ||
-            fontNameLower.includes("black") ||
-            fontNameLower.includes("heavy") ||
-            styleFamilyLower.includes("bold") ||
-            (style?.fontWeight && style.fontWeight >= 600);
-
-          const isItalic =
-            fontNameLower.includes("italic") ||
-            fontNameLower.includes("oblique") ||
-            styleFamilyLower.includes("italic") ||
-            styleFamilyLower.includes("oblique");
+          const sampledColor = pageCtx
+            ? sampleTextColor(pageCtx, vx, vy, fontHeight, itemWidth)
+            : "#000000";
+          const sampledBg = pageCtx
+            ? sampleBgColor(pageCtx, vx, vy, fontHeight)
+            : "#ffffff";
 
           allItems.push({
             id: `det_all_${p}_${idx}`,
@@ -470,7 +528,8 @@ export const PdfEditorStudio: React.FC<PdfEditorStudioProps> = ({ file, onBack }
             pdfWidth: item.width || 0,
             ascent,
             descent,
-            detectedColor: "#000000",
+            detectedColor: sampledColor,
+            detectedBgColor: sampledBg,
             fontFamily: family,
             isBold,
             isItalic,
@@ -528,32 +587,9 @@ export const PdfEditorStudio: React.FC<PdfEditorStudioProps> = ({ file, onBack }
             const descent = style?.descent || -0.22;
             const itemHeight = Math.max(12, (ascent - descent) * fontHeight);
 
-            const fontNameLower = (item.fontName || "").toLowerCase();
-            const styleFamilyLower = (style?.fontFamily || "").toLowerCase();
-            let family: "Helvetica" | "Times" | "Courier" = "Helvetica";
-            if (fontNameLower.includes("courier") || fontNameLower.includes("mono") || styleFamilyLower.includes("mono")) {
-              family = "Courier";
-            } else if (
-              (fontNameLower.includes("times") || (!styleFamilyLower.includes("sans") && styleFamilyLower.includes("serif"))) &&
-              !fontNameLower.includes("sans")
-            ) {
-              family = "Times";
-            } else {
-              family = "Helvetica";
-            }
-
-            const isBold =
-              fontNameLower.includes("bold") ||
-              fontNameLower.includes("black") ||
-              fontNameLower.includes("heavy") ||
-              styleFamilyLower.includes("bold") ||
-              (style?.fontWeight && style.fontWeight >= 600);
-
-            const isItalic =
-              fontNameLower.includes("italic") ||
-              fontNameLower.includes("oblique") ||
-              styleFamilyLower.includes("italic") ||
-              styleFamilyLower.includes("oblique");
+            const family = resolveFontFamily(item.fontName, style?.fontFamily);
+            const isBold = resolveIsBold(item.fontName, style?.fontFamily, style?.fontWeight);
+            const isItalic = resolveIsItalic(item.fontName, style?.fontFamily);
 
             // Sample exact text color and surrounding background color from canvas
             const sampledColor = sampleTextColor(context, vx, vy, fontHeight, itemWidth);
@@ -599,10 +635,30 @@ export const PdfEditorStudio: React.FC<PdfEditorStudioProps> = ({ file, onBack }
     };
   }, [pdfDocProxy, currentPage, zoomScale]);
 
-  // Execute Find & Replace Across Entire Document
+  // Execute Find & Replace Across Entire Document without duplicate stacking
   const handleExecuteFindReplace = (scope: "page" | "all") => {
     if (!findWord.trim()) return;
 
+    // 1. Update matching items already in textElements (prior edits)
+    let updatedExisting = textElements.map((txt) => {
+      if (scope === "page" && txt.page !== currentPage) return txt;
+      let isMatch = false;
+      if (matchCase) {
+        isMatch = txt.text.includes(findWord);
+      } else {
+        isMatch = txt.text.toLowerCase().includes(findWord.toLowerCase());
+      }
+      if (!isMatch) return txt;
+      const replaced = matchCase
+        ? txt.text.replaceAll(findWord, replaceWord)
+        : txt.text.replaceAll(new RegExp(findWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), replaceWord);
+      return {
+        ...txt,
+        text: replaced,
+      };
+    });
+
+    // 2. Find matches in detected PDF text
     const targetList = scope === "page" ? detectedTextItems : allDocDetectedItems;
     const matches = targetList.filter((item) => {
       if (matchCase) {
@@ -611,20 +667,24 @@ export const PdfEditorStudio: React.FC<PdfEditorStudioProps> = ({ file, onBack }
       return item.str.toLowerCase().includes(findWord.toLowerCase());
     });
 
-    if (matches.length === 0) {
-      setFindReplaceStats(`No matches found for "${findWord}".`);
-      return;
-    }
-
+    let replacementsAdded = 0;
     const newReplacements: TextElement[] = [];
 
     matches.forEach((item) => {
-      // Formulate replacement text
+      // Check if this item is ALREADY covered by an existing element in updatedExisting
+      const alreadyHandled = updatedExisting.some(
+        (t) =>
+          t.page === item.page &&
+          ((t.pdfX !== undefined && item.pdfX !== undefined && Math.abs(t.pdfX - item.pdfX) < 10 && Math.abs(t.pdfY! - item.pdfY!) < 6) ||
+           (Math.abs(t.x - item.x) < 12 && Math.abs(t.y - item.y) < 12))
+      );
+      if (alreadyHandled) return;
+
       let replacedStr = item.str;
       if (matchCase) {
         replacedStr = item.str.replaceAll(findWord, replaceWord);
       } else {
-        const regex = new RegExp(findWord, "gi");
+        const regex = new RegExp(findWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
         replacedStr = item.str.replaceAll(regex, replaceWord);
       }
 
@@ -651,19 +711,24 @@ export const PdfEditorStudio: React.FC<PdfEditorStudioProps> = ({ file, onBack }
         descent: item.descent,
         maskPadding: 0,
       });
+      replacementsAdded++;
     });
 
-    // Remove any previous edits that overlap with matched items to avoid duplicate stacking!
-    const matchKeys = new Set(matches.map((m) => `${m.page}_${Math.round(m.x)}_${Math.round(m.y)}`));
-    const cleanedExisting = textElements.filter(
-      (t) => !matchKeys.has(`${t.page}_${Math.round(t.x)}_${Math.round(t.y)}`)
-    );
+    const updatedCount = updatedExisting.filter((t, i) => t.text !== textElements[i].text).length;
+    const totalCount = replacementsAdded + updatedCount;
 
-    const nextTexts = [...cleanedExisting, ...newReplacements];
+    if (totalCount === 0) {
+      setFindReplaceStats(`No matches found for "${findWord}".`);
+      return;
+    }
+
+    const nextTexts = [...updatedExisting, ...newReplacements];
     setTextElements(nextTexts);
     pushHistory(nextTexts, eraseBoxes);
 
-    setFindReplaceStats(`Successfully replaced ${matches.length} occurrence(s) across the ${scope === "page" ? "current page" : "entire document"}!`);
+    setFindReplaceStats(
+      `Successfully replaced in ${totalCount} place(s) across the ${scope === "page" ? "current page" : "entire document"}!`
+    );
     setTimeout(() => {
       setIsFindReplaceOpen(false);
       setFindReplaceStats(null);
@@ -674,8 +739,12 @@ export const PdfEditorStudio: React.FC<PdfEditorStudioProps> = ({ file, onBack }
   const handleExistingTextClick = (item: DetectedTextItem, e: React.MouseEvent) => {
     e.stopPropagation();
 
+    // Check if an existing edit already covers this word in textElements
     const existing = textElements.find(
-      (t) => t.page === currentPage && Math.abs(t.x - item.x) < 8 && Math.abs(t.y - item.y) < 8
+      (t) =>
+        t.page === currentPage &&
+        ((t.pdfX !== undefined && item.pdfX !== undefined && Math.abs(t.pdfX - item.pdfX) < 10 && Math.abs(t.pdfY! - item.pdfY!) < 6) ||
+         (Math.abs(t.x - item.x) < 12 && Math.abs(t.y - item.y) < 12))
     );
 
     if (existing) {
@@ -763,7 +832,7 @@ export const PdfEditorStudio: React.FC<PdfEditorStudioProps> = ({ file, onBack }
         isBold: false,
         isItalic: false,
         align: "left",
-        isBackgroundBlock: true,
+        isBackgroundBlock: false,
         bgColor: "#ffffff",
       };
       const nextTexts = [...textElements, newElem];
@@ -917,12 +986,11 @@ export const PdfEditorStudio: React.FC<PdfEditorStudioProps> = ({ file, onBack }
         const scaleY = pdfHeight / pageViewport.height;
 
         const font = resolveFont(txt.fontFamily, txt.isBold, txt.isItalic);
-        // fontSize is stored as true PDF points (e.g. 11pt)
-        const fontSize = txt.fontSize;
-        const textWidth = font.widthOfTextAtSize(txt.text, fontSize);
+        let fontSize = txt.fontSize;
+        let textWidth = font.widthOfTextAtSize(txt.text, fontSize);
 
-        const ascent = txt.ascent || 0.85;
-        const descent = txt.descent || -0.22;
+        const ascent = txt.ascent ? Math.max(0.82, txt.ascent) : 0.85;
+        const descent = txt.descent ? Math.abs(txt.descent) : 0.22;
         const maskPad = txt.maskPadding ?? 0;
 
         // Determine exact baseline X & Y in PDF coordinates
@@ -939,11 +1007,19 @@ export const PdfEditorStudio: React.FC<PdfEditorStudioProps> = ({ file, onBack }
         }
 
         const origWidth = txt.pdfOriginalWidth ?? (txt.width ? txt.width * scaleX : textWidth);
-        const maskWidth = Math.max(origWidth, textWidth) + maskPad * 2;
-        // Table safe height and baseline offset: strictly covers the glyphs without bleeding into rows or borders
-        const maskHeight = fontSize * 0.94 + maskPad * 2;
-        const maskY = baselineY - (fontSize * 0.18) - maskPad;
-        const maskX = baselineX - maskPad;
+
+        // Table & column fit protection: if replacement text exceeds the column width / original boundary
+        if (txt.pdfOriginalWidth && textWidth > txt.pdfOriginalWidth * 1.05 && txt.pdfOriginalWidth > 35) {
+          const fitRatio = txt.pdfOriginalWidth / textWidth;
+          fontSize = Math.max(fontSize * 0.88, fontSize * fitRatio);
+          textWidth = font.widthOfTextAtSize(txt.text, fontSize);
+        }
+
+        // Complete, impenetrable whiteout covering ascenders, descenders, and side margins
+        const maskWidth = Math.max(origWidth, textWidth) + maskPad * 2 + 1;
+        const maskHeight = fontSize * (ascent + descent) + maskPad * 2;
+        const maskY = baselineY - (descent * fontSize) - maskPad;
+        const maskX = baselineX - maskPad - 0.5;
 
         let drawX = baselineX;
         if (txt.align === "center") {
@@ -1261,8 +1337,8 @@ export const PdfEditorStudio: React.FC<PdfEditorStudioProps> = ({ file, onBack }
               type="number"
               min={6}
               max={72}
-              value={primarySelected?.fontSize || 14}
-              onChange={(e) => updateSelectedProps({ fontSize: parseInt(e.target.value, 10) || 12 })}
+              value={primarySelected ? primarySelected.fontSize : 10}
+              onChange={(e) => updateSelectedProps({ fontSize: parseInt(e.target.value, 10) || 10 })}
               disabled={selectedIds.length === 0}
               className="w-14 px-2 py-1 text-xs font-bold rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-center"
             />
@@ -1651,8 +1727,8 @@ export const PdfEditorStudio: React.FC<PdfEditorStudioProps> = ({ file, onBack }
                     type="number"
                     min={6}
                     max={72}
-                    value={primarySelected?.fontSize || 11}
-                    onChange={(e) => updateSelectedProps({ fontSize: parseInt(e.target.value, 10) || 11 })}
+                    value={primarySelected ? primarySelected.fontSize : 10}
+                    onChange={(e) => updateSelectedProps({ fontSize: parseInt(e.target.value, 10) || 10 })}
                     className="w-full px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs font-bold"
                   />
                 </div>
